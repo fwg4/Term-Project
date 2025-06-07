@@ -1,6 +1,7 @@
 import React from 'react';
 import Home from './pages/Home';
 import SystemSupplyView from './components/SystemSupplyView';
+import UnitsView from './components/UnitsView';
 
 export default function App() {
 	return (
@@ -8,6 +9,7 @@ export default function App() {
 			<h1 className="text-2xl font-bold mb-4">Open Data Dashboard</h1>
 			<Home />
 			<SystemSupplyView />
+			<UnitsView />
 		</div>
 	);
 }
