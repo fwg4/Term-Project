@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 // vite.config.js
-=======
->>>>>>> ecc20ea (直方圖)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -9,7 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-<<<<<<< HEAD
       // 本機 dev server 代理：/api/taipower → 台電 OpenData
       '/api/taipower': {
         target: 'https://service.taipower.com.tw',
@@ -29,13 +25,4 @@ export default defineConfig({
       },
     },
   },
-=======
-      '/taiwan-power': {
-        target: 'https://service.taipower.com.tw',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/taiwan-power/, ''),
-      }
-    }
-  }
->>>>>>> ecc20ea (直方圖)
 });
