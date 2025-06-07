@@ -16,6 +16,12 @@ export async function fetchSystemSupply() {
   // 3) 統一欄位：label, 用電(load), 容量(capacity), 使用率(rate)
   const chartData = [
     {
+      label: '昨日尖峰',
+      load:  parseFloat(yesterday.yday_peak_dema_load),
+      capacity: parseFloat(yesterday.yday_maxi_sply_capacity),
+      rate: parseFloat(yesterday.yday_peak_resv_rate),
+    },
+    {
       label: '即時負載',
       load:  parseFloat(realTime.curr_load),
       capacity: parseFloat(realHour.real_hr_maxi_sply_capacity),
@@ -27,12 +33,7 @@ export async function fetchSystemSupply() {
       capacity: parseFloat(forecast.fore_maxi_sply_capacity),
       rate: parseFloat(forecast.fore_peak_resv_rate),
     },
-    {
-      label: '昨日尖峰',
-      load:  parseFloat(yesterday.yday_peak_dema_load),
-      capacity: parseFloat(yesterday.yday_maxi_sply_capacity),
-      rate: parseFloat(yesterday.yday_peak_resv_rate),
-    },
+    
   ];
 
   return chartData;
