@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
     // 允許前端跨域，也讓 CDN 快取 5 分鐘
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-
+    
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
