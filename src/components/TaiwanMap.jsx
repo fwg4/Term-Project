@@ -17,7 +17,6 @@ import {
 const TOPOJSON_URL = '/assets/twCounty2010merge.topo.json';
 const COLOR_RANGE = ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'];
 
-
 function getColor(value, maxValue) {
     const ratio = value / maxValue;
     if (ratio > 0.8) return COLOR_RANGE[4];
@@ -26,8 +25,15 @@ function getColor(value, maxValue) {
     if (ratio > 0.2) return COLOR_RANGE[1];
     return COLOR_RANGE[0];
 }
+function formatYearMonth(ym) {
+    if (!ym || ym.length !== 5) return '';
+    const year = parseInt(ym.slice(0, 3), 10);
+    const month = parseInt(ym.slice(3, 5), 10);
+    return `民國 ${year} 年 ${month} 月`;
+}
+
+
 function darkenColor(hex, amount = 0.2) {
-    // 將 hex 轉為 RGB，乘上 (1 - amount)
     const num = parseInt(hex.replace('#', ''), 16);
     const r = Math.max(0, ((num >> 16) & 0xff) * (1 - amount));
     const g = Math.max(0, ((num >> 8) & 0xff) * (1 - amount));
@@ -37,84 +43,86 @@ function darkenColor(hex, amount = 0.2) {
 
 export default function TaiwanMap() {
     const [geoData, setGeoData] = useState(null);
-    const [yearMonth, setYearMonth] = useState('11404'); // 預設年月
-    const [year, setYear] = useState('114');
-    const [month, setMonth] = useState('04');
+    const [year, setYear] = useState('');
+    const [month, setMonth] = useState('');
+    const [yearMonths, setYearMonths] = useState([]);
+    const [selectedYearMonth, setSelectedYearMonth] = useState('');
 
     const [totalByCity, setTotalByCity] = useState({});
     const [maxTotal, setMaxTotal] = useState(0);
-    const [yearMonths, setYearMonths] = useState([]);
     const [selectedCity, setSelectedCity] = useState(null);
     const [detailData, setDetailData] = useState([]);
 
     const PIE_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1', '#a4de6c'];
 
+    // 載入地圖與可用年月清單，並設定預設年月選擇
     useEffect(() => {
         fetch(TOPOJSON_URL)
             .then(res => res.json())
             .then(setGeoData);
 
         getAvailableYearMonths().then(ymArr => {
-            //console.log('available yearMonths:', ymArr);
             setYearMonths(ymArr);
             if (ymArr.length > 0) {
-                setYearMonth(ymArr[ymArr.length - 1]);
+                const lastYM = ymArr[ymArr.length - 1];
+                setSelectedYearMonth(lastYM);
+                setYear(lastYM.slice(0, 3));
+                setMonth(lastYM.slice(3, 5));
             }
         });
-
     }, []);
 
+    // 當 year 或 month 改變時，更新 selectedYearMonth
     useEffect(() => {
-        if (!yearMonth) return;
-        getTotalElectricityByCity(yearMonth).then(totals => {
+        if (year && month) {
+            const combined = `${year}${month}`;
+            // 確認 combined 是否在 yearMonths 裡
+            if (yearMonths.includes(combined)) {
+                setSelectedYearMonth(combined);
+            }
+        }
+    }, [year, month, yearMonths]);
+
+    // 當 selectedYearMonth 改變時，抓取該年月的各縣市用電總量
+    useEffect(() => {
+        if (!selectedYearMonth) return;
+        getTotalElectricityByCity(selectedYearMonth).then(totals => {
             setTotalByCity(totals);
             setMaxTotal(Math.max(...Object.values(totals)));
         });
-    }, [yearMonth]);
+    }, [selectedYearMonth]);
 
+    // 當選擇縣市或 selectedYearMonth 改變時，抓取詳細用電資料
     useEffect(() => {
-        if (yearMonths.length > 0) {
-            const ym = yearMonths[0];
-            setYear(ym.slice(0, 3));
-            setMonth(ym.slice(3, 5));
-            setYearMonth(ym);
+        if (selectedCity && selectedYearMonth) {
+            getElectricityDetailByCityAndMonth(selectedCity, selectedYearMonth).then(data => {
+                setDetailData(data);
+            });
+        } else {
+            setDetailData([]);
         }
-    }, [yearMonths]);
+    }, [selectedCity, selectedYearMonth]);
+
+    // 年份下拉選單選項
     const yearOptions = useMemo(() => {
+        if (!Array.isArray(yearMonths)) return [];
         const years = new Set(yearMonths.map(ym => ym.slice(0, 3)));
-        return Array.from(years).sort((a, b) => b - a); // 降序排序
+        return Array.from(years).sort((a, b) => b - a);
     }, [yearMonths]);
 
-    // 月選單：根據選中的年，過濾該年對應的月份（後2碼）
+    // 月份下拉選單選項
     const monthOptions = useMemo(() => {
+        if (!Array.isArray(yearMonths)) return [];
         return yearMonths
             .filter(ym => ym.startsWith(year))
             .map(ym => ym.slice(3, 5))
             .sort((a, b) => a - b);
     }, [year, yearMonths]);
 
-    useEffect(() => {
-        const combined = `${year}${month}`;
-        if (yearMonths.includes(combined)) {
-            setYearMonth(combined);
-        }
-    }, [year, month]);
-
-
-    useEffect(() => {
-        if (selectedCity && yearMonth) {
-            getElectricityDetailByCityAndMonth(selectedCity, yearMonth).then(data => {
-                setDetailData(data);
-            });
-        } else {
-            setDetailData([]);
-        }
-    }, [selectedCity, yearMonth]);
-
     return (
         <div className="bg-white p-4 rounded shadow">
             <h2 className="text-xl font-semibold mb-4">
-                台灣電力公司各縣市總售電量熱度圖
+                台灣電力公司各縣市總售電量
             </h2>
 
             <div className="mb-4 flex items-center space-x-4">
@@ -192,7 +200,17 @@ export default function TaiwanMap() {
                 <div className="w-1/2 p-4 bg-gray-50 rounded border">
                     {selectedCity ? (
                         <>
-                            <h3 className="text-lg font-semibold mb-4">{selectedCity} - {yearMonth} 用電佔比</h3>
+                            <>
+                                <div className="text-center text-2xl font-bold mb-1 text-gray-800">
+                                    {formatYearMonth(selectedYearMonth)}
+                                </div>
+                                <div className="text-center text-xl font-semibold mb-1 text-gray-700">
+                                    縣市：{selectedCity}
+                                </div>
+                                <div className="text-center text-lg font-medium text-gray-600">
+                                    總用電佔量：{totalByCity[selectedCity]?.toLocaleString()} kWh
+                                </div>
+                            </>
                             <div className="flex justify-center">
                                 <PieChart width={500} height={400}>
                                     <Pie
