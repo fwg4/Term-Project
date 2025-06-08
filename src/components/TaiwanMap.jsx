@@ -1,7 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
-import { getTotalElectricityByCity, getAvailableYearMonths, getElectricityDetailByCityAndMonth } from '../data/fetchElectricityData';
+import {
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    Legend,
+} from 'recharts';
+
+import {
+    getTotalElectricityByCity,
+    getAvailableYearMonths,
+    getElectricityDetailByCityAndMonth
+} from '../data/fetchElectricityData';
 
 const TOPOJSON_URL = '/assets/twCounty2010merge.topo.json';
 const COLOR_RANGE = ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'];
@@ -27,6 +38,9 @@ function darkenColor(hex, amount = 0.2) {
 export default function TaiwanMap() {
     const [geoData, setGeoData] = useState(null);
     const [yearMonth, setYearMonth] = useState('11404'); // 預設年月
+    const [year, setYear] = useState('114');
+    const [month, setMonth] = useState('04');
+
     const [totalByCity, setTotalByCity] = useState({});
     const [maxTotal, setMaxTotal] = useState(0);
     const [yearMonths, setYearMonths] = useState([]);
@@ -59,6 +73,35 @@ export default function TaiwanMap() {
     }, [yearMonth]);
 
     useEffect(() => {
+        if (yearMonths.length > 0) {
+            const ym = yearMonths[0];
+            setYear(ym.slice(0, 3));
+            setMonth(ym.slice(3, 5));
+            setYearMonth(ym);
+        }
+    }, [yearMonths]);
+    const yearOptions = useMemo(() => {
+        const years = new Set(yearMonths.map(ym => ym.slice(0, 3)));
+        return Array.from(years).sort((a, b) => b - a); // 降序排序
+    }, [yearMonths]);
+
+    // 月選單：根據選中的年，過濾該年對應的月份（後2碼）
+    const monthOptions = useMemo(() => {
+        return yearMonths
+            .filter(ym => ym.startsWith(year))
+            .map(ym => ym.slice(3, 5))
+            .sort((a, b) => a - b);
+    }, [year, yearMonths]);
+
+    useEffect(() => {
+        const combined = `${year}${month}`;
+        if (yearMonths.includes(combined)) {
+            setYearMonth(combined);
+        }
+    }, [year, month]);
+
+
+    useEffect(() => {
         if (selectedCity && yearMonth) {
             getElectricityDetailByCityAndMonth(selectedCity, yearMonth).then(data => {
                 setDetailData(data);
@@ -74,19 +117,34 @@ export default function TaiwanMap() {
                 台灣電力公司各縣市總售電量熱度圖
             </h2>
 
-            {/* 年月選擇 */}
-            <div className="mb-4">
-                <label htmlFor="yearMonthSelect" className="mr-2 font-semibold">選擇年月：</label>
-                <select
-                    id="yearMonthSelect"
-                    value={yearMonth}
-                    onChange={e => setYearMonth(e.target.value)}
-                    className="border rounded px-2 py-1"
-                >
-                    {yearMonths.map(ym => (
-                        <option key={ym} value={ym}>{ym}</option>
-                    ))}
-                </select>
+            <div className="mb-4 flex items-center space-x-4">
+                <div>
+                    <label htmlFor="yearSelect" className="block mb-1 font-semibold">選擇年</label>
+                    <select
+                        id="yearSelect"
+                        value={year}
+                        onChange={e => setYear(e.target.value)}
+                        className="border rounded px-3 py-2 shadow-sm"
+                    >
+                        {yearOptions.map(y => (
+                            <option key={y} value={y}>{`民國 ${y} 年`}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label htmlFor="monthSelect" className="block mb-1 font-semibold">選擇月</label>
+                    <select
+                        id="monthSelect"
+                        value={month}
+                        onChange={e => setMonth(e.target.value)}
+                        className="border rounded px-3 py-2 shadow-sm"
+                    >
+                        {monthOptions.map(m => (
+                            <option key={m} value={m}>{`${parseInt(m)} 月`}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="flex gap-4">
@@ -135,24 +193,26 @@ export default function TaiwanMap() {
                     {selectedCity ? (
                         <>
                             <h3 className="text-lg font-semibold mb-4">{selectedCity} - {yearMonth} 用電佔比</h3>
-                            <PieChart width={300} height={300}>
-                                <Pie
-                                    data={detailData}
-                                    dataKey="用電佔比"
-                                    nameKey="用電性質"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={100}
-                                    fill="#8884d8"
-                                    label={(entry) => `${entry.用電性質}: ${entry.用電佔比.toFixed(1)}%`}
-                                >
-                                    {detailData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip formatter={(value) => `${value}%`} />
-                                <Legend />
-                            </PieChart>
+                            <div className="flex justify-center">
+                                <PieChart width={500} height={400}>
+                                    <Pie
+                                        data={detailData}
+                                        dataKey="用電佔比"
+                                        nameKey="用電性質"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={100}
+                                        fill="#8884d8"
+                                        label={(entry) => `${entry.用電性質}: ${entry.用電佔比.toFixed(1)}%`}
+                                    >
+                                        {detailData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => `${value}%`} />
+                                    <Legend />
+                                </PieChart>
+                            </div>
                         </>
                     ) : (
                         <p>請點擊地圖上的縣市以查看詳細用電資料</p>
