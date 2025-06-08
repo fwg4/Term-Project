@@ -10,8 +10,8 @@ export default function App() {
 			<h1 className="text-2xl font-bold mb-4">Term Project</h1>
 			<Home />
 			<SystemSupplyView />
-			<UnitsView />
 			<TaiwanMap />
+			<UnitsView />
 		</div>
 	);
 }

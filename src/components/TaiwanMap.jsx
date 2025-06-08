@@ -1,33 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
-import { getTotalElectricityByCity, getAvailableYearMonths } from '../data/fetchElectricityData';
+import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { getTotalElectricityByCity, getAvailableYearMonths, getElectricityDetailByCityAndMonth } from '../data/fetchElectricityData';
 
 const TOPOJSON_URL = '/assets/twCounty2010merge.topo.json';
 const COLOR_RANGE = ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15'];
-const cityNameMap = {
-  '台北市': '台北市',
-  '新北市': '新北市',
-  '桃園縣': '桃園市',
-  '台中市': '台中市',
-  '台南市': '台南市',
-  '高雄市': '高雄市',
-  '基隆市': '基隆市',
-  '新竹市': '新竹市',
-  '新竹縣': '新竹縣',
-  '苗栗縣': '苗栗縣',
-  '彰化縣': '彰化縣',
-  '南投縣': '南投縣',
-  '雲林縣': '雲林縣',
-  '嘉義市': '嘉義市',
-  '嘉義縣': '嘉義縣',
-  '屏東縣': '屏東縣',
-  '宜蘭縣': '宜蘭縣',
-  '花蓮縣': '花蓮縣',
-  '台東縣': '台東縣',
-  '澎湖縣': '澎湖縣',
-  '金門縣': '金門縣',
-  '連江縣': '連江縣'
-};
+
 
 function getColor(value, maxValue) {
     const ratio = value / maxValue;
@@ -52,6 +30,10 @@ export default function TaiwanMap() {
     const [totalByCity, setTotalByCity] = useState({});
     const [maxTotal, setMaxTotal] = useState(0);
     const [yearMonths, setYearMonths] = useState([]);
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [detailData, setDetailData] = useState([]);
+
+    const PIE_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1', '#a4de6c'];
 
     useEffect(() => {
         fetch(TOPOJSON_URL)
@@ -75,6 +57,16 @@ export default function TaiwanMap() {
             setMaxTotal(Math.max(...Object.values(totals)));
         });
     }, [yearMonth]);
+
+    useEffect(() => {
+        if (selectedCity && yearMonth) {
+            getElectricityDetailByCityAndMonth(selectedCity, yearMonth).then(data => {
+                setDetailData(data);
+            });
+        } else {
+            setDetailData([]);
+        }
+    }, [selectedCity, yearMonth]);
 
     return (
         <div className="bg-white p-4 rounded shadow">
@@ -109,9 +101,7 @@ export default function TaiwanMap() {
                                 {({ geographies }) =>
                                     geographies.map(geo => {
                                         const cityName = geo.properties.COUNTYNAME || geo.properties.name;
-                                        const mappedCityName = cityNameMap[cityName];
-
-                                        const totalElectricity = totalByCity[mappedCityName] || 0;
+                                        const totalElectricity = totalByCity[cityName] || 0;
                                         const fillColor = totalElectricity > 0 ? getColor(totalElectricity, maxTotal) : '#EEE';
 
                                         return (
@@ -120,6 +110,10 @@ export default function TaiwanMap() {
                                                 geography={geo}
                                                 fill={fillColor}
                                                 stroke="#333"
+                                                onClick={() => {
+                                                    if (cityName) setSelectedCity(cityName);
+                                                }}
+
                                                 style={{
                                                     default: { outline: 'none' },
                                                     hover: {
@@ -138,7 +132,31 @@ export default function TaiwanMap() {
                 </div>
 
                 <div className="w-1/2 p-4 bg-gray-50 rounded border">
-                    <p>這裡可以放該月份的詳細用電資料。</p>
+                    {selectedCity ? (
+                        <>
+                            <h3 className="text-lg font-semibold mb-4">{selectedCity} - {yearMonth} 用電佔比</h3>
+                            <PieChart width={300} height={300}>
+                                <Pie
+                                    data={detailData}
+                                    dataKey="用電佔比"
+                                    nameKey="用電性質"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    fill="#8884d8"
+                                    label={(entry) => `${entry.用電性質}: ${entry.用電佔比.toFixed(1)}%`}
+                                >
+                                    {detailData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value) => `${value}%`} />
+                                <Legend />
+                            </PieChart>
+                        </>
+                    ) : (
+                        <p>請點擊地圖上的縣市以查看詳細用電資料</p>
+                    )}
                 </div>
             </div>
         </div>
