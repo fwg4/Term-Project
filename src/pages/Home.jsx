@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchPeakReserve } from '../data/fetchPeakReserve';
-import BarChartView from '../components/charts/BarChartView';
+import BarChartView from '../components/BarChartView';
 
 export default function Home() {
 	const [data, setData] = useState([]);

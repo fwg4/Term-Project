@@ -21,37 +21,37 @@ const TYPE_COLORS = {
 };
 
 export default function UnitsView() {
-  const [units, setUnits] = useState([]);
+    const [units, setUnits] = useState([]);
 
-  useEffect(() => {
-    fetchUnits().then(setUnits).catch(console.error);
-  }, []);
+    useEffect(() => {
+        fetchUnits().then(setUnits).catch(console.error);
+    }, []);
 
-  // 只顯示發電率 >= 1%
-  const visibleUnits = units.filter(u => !isNaN(u.ratio) && u.ratio >= 1);
+    // 只顯示發電率 >= 1%
+    const visibleUnits = units.filter(u => !isNaN(u.ratio) && u.ratio >= 1);
 
-  return (
-    <div className="mt-8 space-y-4">
-      {/* 標題 + 顏色圖例 */}
-      <div>
-        <h2 className="text-xl font-semibold">
-          台灣電力公司各機組發電量即時資訊
-        </h2>
-        <div className="flex flex-wrap items-center gap-4 mt-1 text-xs">
-          {Object.entries(TYPE_COLORS).map(([type, color]) => (
-            <span
-              key={type}
-              className="font-semibold"
-              style={{ color }}
-            >
-              {type}
-            </span>
-          ))}
-        </div>
-      </div>
+    return (
+        <div className="mt-8 space-y-4">
+            {/* 標題 + 顏色圖例 */}
+            <div>
+                <h2 className="text-xl font-semibold">
+                    台灣電力公司各機組發電量即時資訊
+                </h2>
+                <div className="flex flex-wrap items-center gap-4 mt-1 text-xs">
+                    {Object.entries(TYPE_COLORS).map(([type, color]) => (
+                        <span
+                            key={type}
+                            className="font-semibold"
+                            style={{ color }}
+                        >
+                            {type}
+                        </span>
+                    ))}
+                </div>
+            </div>
 
-      {/* 機組圓環卡片網格 */}
-      <div className="
+            {/* 機組圓環卡片網格 */}
+            <div className="
           grid gap-2
           grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10
         ">
@@ -79,27 +79,27 @@ export default function UnitsView() {
                 </PieChart>
               </div>
 
-              {/* 滑入後覆蓋層 */}
-              <div
-                className="
+                            {/* 滑入後覆蓋層 */}
+                            <div
+                                className="
                   absolute inset-0 flex flex-col justify-center items-center
                   text-white rounded-2xl opacity-0 group-hover:opacity-100
                   transition-opacity duration-200
                 "
-                style={{ backgroundColor: color }}
-              >
-                <div className="text-xs font-bold">{u.name}</div>
-                <div className="text-[8px] mt-0.5">
-                  {u.generation.toFixed(1)} MW / {u.capacity.toFixed(1)} MW
-                </div>
-                <div className="text-base font-bold mt-1">
-                  {u.ratio.toFixed(0)}%
-                </div>
-              </div>
+                                style={{ backgroundColor: color }}
+                            >
+                                <div className="text-xs font-bold">{u.name}</div>
+                                <div className="text-[8px] mt-0.5">
+                                    {u.generation.toFixed(1)} MW / {u.capacity.toFixed(1)} MW
+                                </div>
+                                <div className="text-base font-bold mt-1">
+                                    {u.ratio.toFixed(0)}%
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
